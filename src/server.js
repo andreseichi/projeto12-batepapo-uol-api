@@ -88,6 +88,37 @@ server.post('/participants', async (req, res) => {
   }
 });
 
+server.get('/messages', async (req, res) => {
+  const { limit } = req.query;
+  const { user } = req.headers;
+
+  try {
+    await mongoClient.connect();
+    const db = mongoClient.db('batePapoUol');
+    const messagesCollection = db.collection('messages');
+
+    const messagesArray = await messagesCollection.find().toArray();
+    const messagesArrayInverted = messagesArray.reverse();
+    const messagesVisible = messagesArrayInverted.filter((message) => {
+      return (
+        message.from === user || message.to === user || message.to === 'Todos'
+      );
+    });
+
+    mongoClient.close();
+    if (limit) {
+      const limitedMessagesArray = messagesVisible.slice(0, limit);
+      return res.send(limitedMessagesArray);
+    }
+
+    return res.send(messagesVisible);
+  } catch (error) {
+    console.log(error);
+    mongoClient.close();
+    return res.status(500).send(error);
+  }
+});
+
 server.listen(PORT, () => {
   console.log(`Rodando em http://localhost:${PORT}`);
 });

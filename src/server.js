@@ -1,10 +1,11 @@
 import express, { json } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-
 import dayjs from 'dayjs';
 
 import { MongoClient } from 'mongodb';
+
+import { participantSchema } from './schemas/participant.js';
 
 dotenv.config();
 
@@ -40,7 +41,9 @@ server.get('/participants', async (req, res) => {
 
 server.post('/participants', async (req, res) => {
   const { name } = req.body;
-  if (!name) {
+  const participantValidation = participantSchema.validate({ name });
+
+  if (participantValidation.error) {
     return res.status(422).send('name deve ser string não vazio');
   }
 
@@ -54,6 +57,13 @@ server.post('/participants', async (req, res) => {
     const db = mongoClient.db('batePapoUol');
 
     const participantsCollection = db.collection('participants');
+
+    const participantDB = await participantsCollection.findOne({ name });
+
+    if (participantDB) {
+      return res.status(409).send('Nome já cadastrado');
+    }
+
     await participantsCollection.insertOne(participant);
 
     const data = dayjs().format('HH:MM:ss');

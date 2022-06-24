@@ -2,6 +2,8 @@ import express, { json } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
+import dayjs from 'dayjs';
+
 import { MongoClient } from 'mongodb';
 
 dotenv.config();
@@ -9,23 +11,71 @@ dotenv.config();
 const PORT = process.env.PORT || 5000;
 
 const mongoClient = new MongoClient(process.env.MONGO_URI);
-let db;
+// let db;
 
-mongoClient.connect().then(() => {
-  db = mongoClient.db('bate_papo_uol');
-});
+// mongoClient.connect().then(() => {
+//   db = mongoClient.db('batePapoUol');
+// });
 
 const server = express();
 server.use(cors());
 server.use(json());
 
-server.get('/participants', (req, res) => {
-  db.collection('participants')
-    .find()
-    .toArray()
-    .then((participants) => {
-      res.send(participants);
-    });
+server.get('/participants', async (req, res) => {
+  try {
+    await mongoClient.connect();
+    const db = mongoClient.db('batePapoUol');
+    const participantsCollection = db.collection('participants');
+
+    const collectionArray = await participantsCollection.find().toArray();
+    mongoClient.close();
+
+    return res.send(collectionArray);
+  } catch (error) {
+    console.log(error);
+    mongoClient.close();
+    return res.status(500).send(error);
+  }
+});
+
+server.post('/participants', async (req, res) => {
+  const { name } = req.body;
+  if (!name) {
+    return res.status(422).send('name deve ser string não vazio');
+  }
+
+  const participant = {
+    name,
+    lastStatus: Date.now(),
+  };
+
+  try {
+    await mongoClient.connect();
+    const db = mongoClient.db('batePapoUol');
+
+    const participantsCollection = db.collection('participants');
+    await participantsCollection.insertOne(participant);
+
+    const data = dayjs().format('HH:MM:ss');
+    const messageObject = {
+      from: name,
+      to: 'Todos',
+      text: 'entra na sala...',
+      type: 'status',
+      time: data,
+    };
+
+    const messagesCollection = db.collection('messages');
+    await messagesCollection.insertOne(messageObject);
+
+    mongoClient.close();
+
+    return res.sendStatus(201);
+  } catch (error) {
+    console.log(error);
+    mongoClient.close();
+    res.status(500).send(error);
+  }
 });
 
 server.listen(PORT, () => {

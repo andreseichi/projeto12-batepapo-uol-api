@@ -29,13 +29,13 @@ server.get('/participants', async (req, res) => {
     const participantsCollection = db.collection('participants');
 
     const collectionArray = await participantsCollection.find().toArray();
-    mongoClient.close();
 
     return res.send(collectionArray);
   } catch (error) {
     console.log(error);
-    mongoClient.close();
     return res.status(500).send(error);
+  } finally {
+    // await mongoClient.close();
   }
 });
 
@@ -83,7 +83,7 @@ server.post('/participants', async (req, res) => {
     console.log(error);
     res.status(500).send(error);
   } finally {
-    await mongoClient.close();
+    // await mongoClient.close();
   }
 });
 
@@ -104,7 +104,6 @@ server.get('/messages', async (req, res) => {
       );
     });
 
-    mongoClient.close();
     if (limit) {
       const limitedMessagesArray = messagesVisible.slice(-limit);
       return res.send(limitedMessagesArray);
@@ -113,8 +112,9 @@ server.get('/messages', async (req, res) => {
     return res.send(messagesVisible);
   } catch (error) {
     console.log(error);
-    mongoClient.close();
     return res.status(500).send(error);
+  } finally {
+    // await mongoClient.close();
   }
 });
 
@@ -127,7 +127,7 @@ server.post('/messages', async (req, res) => {
     const db = mongoClient.db('batePapoUol');
 
     const participantsCollection = db.collection('participants');
-    const participantDB = await participantsCollection.findOne({ user });
+    const participantDB = await participantsCollection.findOne({ name: user });
 
     if (!participantDB) {
       return res.status(422).send('usuário não cadastrado');
@@ -150,7 +150,36 @@ server.post('/messages', async (req, res) => {
     console.log(error);
     res.status(500).send(error);
   } finally {
-    mongoClient.close();
+    // await mongoClient.close();
+  }
+});
+
+server.post('/status', async (req, res) => {
+  const { user } = req.headers;
+
+  try {
+    await mongoClient.connect();
+    const db = mongoClient.db('batePapoUol');
+    const participantsCollection = db.collection('participants');
+    const participantDB = await participantsCollection.findOne({ name: user });
+
+    if (!participantDB) {
+      return res.sendStatus(404);
+    }
+
+    await participantsCollection.updateOne(
+      {
+        name: user,
+      },
+      { $set: { lastStatus: Date.now() } }
+    );
+
+    res.sendStatus(200);
+  } catch (error) {
+    console.log(error);
+    return res.status(500).send(error);
+  } finally {
+    // await mongoClient.close();
   }
 });
 

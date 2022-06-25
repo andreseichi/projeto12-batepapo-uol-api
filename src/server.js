@@ -78,13 +78,12 @@ server.post('/participants', async (req, res) => {
     const messagesCollection = db.collection('messages');
     await messagesCollection.insertOne(messageObject);
 
-    mongoClient.close();
-
-    return res.sendStatus(201);
+    res.sendStatus(201);
   } catch (error) {
     console.log(error);
-    mongoClient.close();
     res.status(500).send(error);
+  } finally {
+    await mongoClient.close();
   }
 });
 
@@ -116,6 +115,42 @@ server.get('/messages', async (req, res) => {
     console.log(error);
     mongoClient.close();
     return res.status(500).send(error);
+  }
+});
+
+server.post('/messages', async (req, res) => {
+  const { to, text, type } = req.body;
+  const { user } = req.headers;
+
+  try {
+    await mongoClient.connect();
+    const db = mongoClient.db('batePapoUol');
+
+    const participantsCollection = db.collection('participants');
+    const participantDB = await participantsCollection.findOne({ user });
+
+    if (!participantDB) {
+      return res.status(422).send('usuário não cadastrado');
+    }
+
+    const data = dayjs().format('HH:MM:ss');
+    const messageObject = {
+      from: user,
+      to: to,
+      text: text,
+      type: type,
+      time: data,
+    };
+
+    const messagesCollection = db.collection('messages');
+    await messagesCollection.insertOne(messageObject);
+
+    res.sendStatus(201);
+  } catch (error) {
+    console.log(error);
+    res.status(500).send(error);
+  } finally {
+    mongoClient.close();
   }
 });
 

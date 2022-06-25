@@ -97,8 +97,8 @@ server.get('/messages', async (req, res) => {
     const messagesCollection = db.collection('messages');
 
     const messagesArray = await messagesCollection.find().toArray();
-    const messagesArrayInverted = messagesArray.reverse();
-    const messagesVisible = messagesArrayInverted.filter((message) => {
+    // const messagesArrayInverted = messagesArray.reverse();
+    const messagesVisible = messagesArray.filter((message) => {
       return (
         message.from === user || message.to === user || message.to === 'Todos'
       );
@@ -106,7 +106,7 @@ server.get('/messages', async (req, res) => {
 
     mongoClient.close();
     if (limit) {
-      const limitedMessagesArray = messagesVisible.slice(0, limit);
+      const limitedMessagesArray = messagesVisible.slice(-limit);
       return res.send(limitedMessagesArray);
     }
 

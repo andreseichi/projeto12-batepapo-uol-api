@@ -190,7 +190,7 @@ setInterval(async () => {
     const participantsCollection = db.collection('participants');
     const participantsArray = await participantsCollection.find().toArray();
 
-    if (!participantsArray) {
+    if (participantsArray.length === 0) {
       return;
     }
 

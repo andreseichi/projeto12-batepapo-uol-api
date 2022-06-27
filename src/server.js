@@ -6,6 +6,7 @@ import dayjs from 'dayjs';
 import { MongoClient, ObjectId } from 'mongodb';
 
 import { participantSchema } from './schemas/participant.js';
+import { messageSchema } from './schemas/message.js';
 
 dotenv.config();
 
@@ -133,12 +134,23 @@ server.post('/messages', async (req, res) => {
       return res.status(422).send('usuário não cadastrado');
     }
 
-    const data = dayjs().format('HH:MM:ss');
-    const messageObject = {
+    const message = {
       from: user,
       to: to,
       text: text,
       type: type,
+    };
+    const messageValidation = messageSchema.validate(message);
+    if (messageValidation.error) {
+      const errorsMessageArray = messageValidation.error.details.map(
+        (error) => error.message
+      );
+      return res.status(422).send(errorsMessageArray);
+    }
+
+    const data = dayjs(Date.now()).format('HH:MM:ss');
+    const messageObject = {
+      ...message,
       time: data,
     };
 

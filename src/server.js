@@ -195,6 +195,36 @@ server.post('/status', async (req, res) => {
   }
 });
 
+server.delete('/messages/:id', async (req, res) => {
+  const { user } = req.headers;
+  const { id } = req.params;
+
+  try {
+    await mongoClient.connect();
+    const db = mongoClient.db('batePapoUol');
+    const messagesCollection = db.collection('messages');
+    const messageDB = await messagesCollection.findOne({
+      _id: new ObjectId(id),
+    });
+
+    if (!messageDB) {
+      console.log('deu null');
+      return res.sendStatus(404);
+    }
+
+    if (messageDB.from !== user) {
+      return res.sendStatus(401);
+    }
+
+    await messagesCollection.deleteOne({ _id: new ObjectId(id) });
+
+    return res.sendStatus(200);
+  } catch (error) {
+    console.log(error);
+    return res.status(500).send(error);
+  }
+});
+
 setInterval(async () => {
   try {
     await mongoClient.connect();

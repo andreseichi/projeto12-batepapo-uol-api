@@ -67,7 +67,7 @@ server.post('/participants', async (req, res) => {
 
     await participantsCollection.insertOne(participant);
 
-    const data = dayjs().format('HH:MM:ss');
+    const data = dayjs(Date.now()).format('HH:MM:ss');
     const messageObject = {
       from: name,
       to: 'Todos',
@@ -212,7 +212,7 @@ setInterval(async () => {
           _id: new ObjectId(participant._id),
         });
 
-        const data = dayjs().format('HH:MM:ss');
+        const data = dayjs(Date.now()).format('HH:MM:ss');
         const messageObject = {
           from: participant.name,
           to: 'Todos',

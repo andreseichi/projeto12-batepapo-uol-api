@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import dayjs from 'dayjs';
 
-import { MongoClient } from 'mongodb';
+import { MongoClient, ObjectId } from 'mongodb';
 
 import { participantSchema } from './schemas/participant.js';
 
@@ -182,6 +182,41 @@ server.post('/status', async (req, res) => {
     // await mongoClient.close();
   }
 });
+
+setInterval(async () => {
+  try {
+    await mongoClient.connect();
+    const db = mongoClient.db('batePapoUol');
+    const participantsCollection = db.collection('participants');
+    const participantsArray = await participantsCollection.find().toArray();
+
+    if (!participantsArray) {
+      return;
+    }
+
+    participantsArray.forEach(async (participant) => {
+      if (Date.now() - participant.lastStatus > 10000) {
+        await participantsCollection.deleteOne({
+          _id: new ObjectId(participant._id),
+        });
+
+        const data = dayjs().format('HH:MM:ss');
+        const messageObject = {
+          from: participant.name,
+          to: 'Todos',
+          text: 'sai da sala...',
+          type: 'status',
+          time: data,
+        };
+
+        const messagesCollection = db.collection('messages');
+        await messagesCollection.insertOne(messageObject);
+      }
+    });
+  } catch (error) {
+    console.log(error);
+  }
+}, 15000); // 15 seconds
 
 server.listen(PORT, () => {
   console.log(`Rodando em http://localhost:${PORT}`);
